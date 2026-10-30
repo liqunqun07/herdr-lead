@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# 用法: hd-pick <cheap|mid|strong>   按用户偏好给出该级别当前应使用的模型别名
+. "$(dirname "$0")/hd-common.sh"
+require_configured
+case "${1:-}" in cheap|mid|strong) ;; *) die "用法: hd-pick <cheap|mid|strong>";; esac
+a="$(resolve_alias "$1")"; [ "$a" != "$1" ] || die "没有任何可用模型（hd-models 查看）"; echo "$a"

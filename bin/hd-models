@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# 列出已配置的 CLI×模型（按用户偏好 rank 排序）。STATUS: ok=可派工  off=用户停用  no-<cli>=CLI 不在 PATH
+. "$(dirname "$0")/hd-common.sh"
+require_configured
+printf '%-4s %-30s %-6s %-34s %-7s %-7s %-8s %s\n' RANK ALIAS CLI MODEL TIER THINK STATUS WHEN
+conf_rows | sort -t'|' -k8,8n | \
+while IFS='|' read -r a r m t e w tier rank; do
+  if [ "$e" != yes ]; then st=off; elif command -v "$r" >/dev/null 2>&1; then st=ok; else st="no-$r"; fi
+  printf '%-4s %-30s %-6s %-34s %-7s %-7s %-8s %s\n' "$rank" "$a" "$r" "$m" "$tier" "$t" "$st" "$w"
+done

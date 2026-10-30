@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# 用法: hd-plan show <plan文件>   校验并展示派工方案（给用户确认用）
+#       hd-plan run  <plan文件>   按方案一次性派发（只能在用户确认后执行）
+# plan 每行: task_id|模型别名|thinking|工作目录|任务文件|一句话说明
+. "$(dirname "$0")/hd-common.sh"
+require_configured; CMD="${1:-}"; PLAN="${2:-}"; [ -f "$PLAN" ] || die "用法: hd-plan show|run <plan文件>"
+BIN="$(dirname "$0")"; MAX="${HD_MAX_PANES:-4}"
+rows(){ grep -v '^[[:space:]]*#' "$PLAN" | grep -v '^[[:space:]]*$'; }
+MODELS="$("$BIN/hd-models")"
+status_of(){ awk -v a="$1" '$2==a {print $7}' <<<"$MODELS"; }
+
+case "$CMD" in
+show)
+  bad=0; n=$(rows | wc -l | tr -d ' ')
+  echo "派工方案：共 $n 个窗口并行"
+  printf '%-4s %-12s %-30s %-6s %-7s %-10s %s\n' '#' TASK MODEL CLI THINK STATUS NOTE
+  i=0
+  while IFS='|' read -r id al th cwd tf note; do
+    i=$((i+1)); al="$(resolve_alias "$al")"; row="$(lookup_model "$al")"; run="${row%%|*}"; st="$(status_of "$al")"; st="${st:-未配置}"
+    [ "$st" = ok ] || bad=1
+    case "$th" in off|low|medium|high|"") ;; *) st="thinking错"; bad=1;; esac
+    [[ "$id" =~ ^[A-Za-z0-9_-]+$ ]] || { st="id非法"; bad=1; }
+    [ -d "${cwd:-.}" ] || { st="缺目录"; bad=1; }
+    [ -f "$tf" ] || { st="缺任务文件"; bad=1; }
+    printf '%-4s %-12s %-30s %-6s %-7s %-10s %s\n' "$i" "$id" "$al" "${run:-?}" "${th:-默认}" "$st" "$note"
+  done < <(rows)
+  dup="$(rows | cut -d'|' -f1 | sort | uniq -d)"; [ -z "$dup" ] || { echo "!! task_id 重复: $dup"; bad=1; }
+  [ "$n" -le "$MAX" ] || { echo "!! 窗口数 $n 超过上限 ${MAX}（HD_MAX_PANES）"; bad=1; }
+  [ $bad -eq 0 ] || { echo "!! 方案有不可用项，请先修正再给用户确认"; exit 1; } ;;
+run)
+  "$0" show "$PLAN" >/dev/null || die "方案校验未通过，先运行 hd-plan show $PLAN"
+  while IFS='|' read -r id al th cwd tf note; do
+    "$BIN/hd-dispatch" "$id" "$al" "$tf" ${th:+-t "$th"} --cwd "${cwd:-$PWD}" || exit 1
+  done < <(rows)
+  echo "全部已派发。下一步: hd-collect $(rows | cut -d'|' -f1 | tr '\n' ' ')" ;;
+*) die "用法: hd-plan show|run <plan文件>";;
+esac

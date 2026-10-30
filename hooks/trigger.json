@@ -1,0 +1,4 @@
+{
+  "pattern": "^(?!.*(?:分工|指挥|派活|多\\s*(?:AI|agent)|多窗口|并行|接管|接手|额度|quota|orchestrat(?:e|ion))).*(?:计划|方案|规划|排期|派工|长任务|plan mode|make a plan|\\bplan\\b)",
+  "context": "[herdr-dispatch] 若处于计划阶段且任务复杂或较长，按 herdr-dispatch/SKILL.md 生成一次性子任务派工方案；简单任务忽略。"
+}
