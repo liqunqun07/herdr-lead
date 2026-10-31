@@ -741,6 +741,9 @@ def cmd_init(a):
     P(root, "plan.json").write_text(json.dumps(
         {"run_id": secrets.token_hex(3), "goal": a.goal, "version": 0,
          "created_at": time.time(), "tasks": []}, ensure_ascii=False, indent=2))
+    if getattr(a, "record", None):
+        cmd_record(SimpleNamespace(root=a.root, action=a.record, dir=getattr(a, "record_dir", None),
+                                   leader=getattr(a, "leader", None)))
     excl = root / ".git" / "info" / "exclude"
     if excl.parent.exists() and RUN not in (excl.read_text() if excl.exists() else ""):
         with excl.open("a") as f:
@@ -1280,6 +1283,7 @@ def render_plan(plan, routes=None, snapshot=None, actual=False):
     split_warnings = [w for w in warnings if "建议不拆" in w]
     lines.append("- 不建议拆的任务：" + ("；".join(split_warnings) if split_warnings else "无"))
     lines.append("- 无可用模型的任务：" + ("；".join(missing) if missing else "无"))
+    lines.append(record_line(plan))
     if errs:
         lines.append("- 计划错误：" + "；".join(errs))
     return "\n".join(lines) + "\n"
@@ -1325,6 +1329,10 @@ def run_wave(a):
     if not selected and not any(t["status"] == "running" and t.get("submission") == "submitted" for t in plan["tasks"]):
         print("没有待派任务")
         return
+    if "record" not in plan and not a.dry_run:
+        print(render_plan(plan, routes, snap), end="")
+        print("派工记录未确认：先问用户是否需要（默认放桌面新文件夹，可指定父目录），再 hl record on --leader <AI> [--dir 父目录] 或 hl record off")
+        raise SystemExit(3)
     needs_confirm = len(selected) >= 3 or any(m["tier"] == "strong" for t, m in selected)
     if needs_confirm and not a.yes:
         print(render_plan(plan, routes, snap), end="")
@@ -1488,8 +1496,12 @@ def cmd_run(a):
         run_wave(a)
         if a.dry_run:
             return
-        after = [(t["id"], t["status"]) for t in read_plan(root_of(a))["tasks"]]
+        plan = read_plan(root_of(a))
+        after = [(t["id"], t["status"]) for t in plan["tasks"]]
         if before == after or not any(status == "todo" for _, status in after):
+            out = export_record(root, plan)
+            if out:
+                print("派工记录已更新:", out)
             return
 
 def do_retry(root, routes, t):
@@ -1583,6 +1595,64 @@ def cmd_review(a):
         plan["tasks"].append(task)
     print("已加入独立复核", rid)
 
+def record_line(plan) -> str:
+    rec = plan.get("record")
+    if rec is None:
+        return "- 派工记录：未确认（先问用户是否需要，再 hl record on|off）"
+    return "- 派工记录：" + (rec["dir"] if rec.get("on") else "不需要")
+
+
+def export_record(root, plan):
+    """Write 派工文档 md + 执行记录 json from plan.json; pure file copy, no model tokens."""
+    rec = plan.get("record") or {}
+    if not rec.get("on"):
+        return None
+    out = Path(rec["dir"])
+    out.mkdir(parents=True, exist_ok=True)
+    catalog = {m["alias"]: m for m in models()}
+    tag = rec.get("leader", "leader")
+    md = ["# 派工文档：" + plan.get("goal", ""), "",
+          f"leader：{tag}　run：{plan.get('run_id', '')}　导出：{time.strftime('%Y-%m-%d %H:%M')}", "",
+          render_plan(plan, load_routes(root), actual=True).rstrip()]
+    tasks = []
+    for t in plan["tasks"]:
+        runner = t.get("runner") or catalog.get(t.get("alias"), {}).get("runner", "")
+        ai = "leader" if t.get("owner") == "leader" else (ai_name(runner) if runner else "")
+        brief = P(root, "brief", t["id"] + ".md")
+        md += ["", f"## {t['id']} {t.get('title', '')}　→ {ai or '未派'}（{t['status']}）", "",
+               brief.read_text() if brief.exists() else "（尚未生成简报）"]
+        tasks.append({"id": t["id"], "title": t.get("title", ""), "ai": ai, "runner": runner,
+                      "alias": t.get("alias", ""), "model": catalog.get(t.get("alias"), {}).get("model", ""),
+                      "tier": t.get("tier"), "mode": t.get("mode"), "status": t["status"],
+                      "retries": t.get("retries", 0), "escalated": t.get("escalated", False),
+                      "writes": t.get("writes", []), "started_at": t.get("started_at"),
+                      "finished_at": t.get("finished_at"), "summary": t.get("summary", ""),
+                      "reason": t.get("reason", ""), "report": str(report_path(root, t)), "brief": str(brief)})
+    (out / f"派工文档_{tag}.md").write_text("\n".join(md) + "\n")
+    (out / f"执行记录_{tag}.json").write_text(json.dumps(
+        {"goal": plan.get("goal", ""), "run_id": plan.get("run_id"), "leader": tag, "project": str(root),
+         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "tasks": tasks}, ensure_ascii=False, indent=2))
+    return out
+
+
+def cmd_record(a):
+    root = root_of(a)
+    if a.action == "export":
+        out = export_record(root, read_plan(root))
+        print(out or "派工记录已关闭或未确认")
+        return
+    with plan_tx(root) as plan:
+        if a.action == "off":
+            plan["record"] = {"on": False}
+        else:
+            if not a.leader:
+                die("hl record on 需要 --leader <当前 leader AI，如 claude/codex/agy>")
+            name = "派工记录_" + re.sub(r'[\\/:*?"<>|\s]+', "", plan.get("goal", ""))[:20] + "_" + time.strftime("%m%d-%H%M")
+            parent = Path(a.dir).expanduser() if a.dir else Path.home() / "Desktop"
+            plan["record"] = {"on": True, "dir": str(parent.resolve() / name), "leader": a.leader.lower()}
+        print(record_line(plan))
+
+
 def cmd_digest(a):
     root = root_of(a)
     plan = read_plan(root)
@@ -1597,6 +1667,7 @@ def cmd_digest(a):
     text = "\n".join(lines) + "\n"
     P(root, "digest.md").write_text(text)
     print(text)
+    export_record(root, plan)
 
 def cmd_doctor(a):
     connected = False
@@ -1622,7 +1693,11 @@ def main():
     ap = argparse.ArgumentParser(prog="hl")
     ap.add_argument("--root")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("init"); s.add_argument("--goal", required=True); s.set_defaults(f=cmd_init)
+    s = sub.add_parser("init"); s.add_argument("--goal", required=True); s.add_argument("--record", choices=("on", "off"))
+    s.add_argument("--record-dir"); s.add_argument("--leader"); s.set_defaults(f=cmd_init)
+    s = sub.add_parser("record", help="派工记录：on 生成到桌面新文件夹（或 --dir 父目录下），off 不生成，export 立即导出")
+    s.add_argument("action", choices=("on", "off", "export")); s.add_argument("--dir"); s.add_argument("--leader")
+    s.set_defaults(f=cmd_record)
     s = sub.add_parser("load"); s.add_argument("file"); s.set_defaults(f=cmd_load)
     s = sub.add_parser("check"); s.set_defaults(f=cmd_check)
     s = sub.add_parser("plan"); s.add_argument("--md", action="store_true"); s.set_defaults(f=cmd_plan)

@@ -116,7 +116,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="reset"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="reset", record="off"))
             failed = task("a")
             failed.update(status="failed", retries=2, owner="old-agent", submission="stopped",
                           reason="previous failure", last_failure="boom")
@@ -163,7 +163,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="g"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="g", record="off"))
             t = task("a")
             with hl.plan_tx(root) as plan:
                 plan["tasks"] = [t]
@@ -287,7 +287,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="test"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="test", record="off"))
             a, b = task("a"), task("b", deps=["a"])
             a["mode"] = "oneshot"
             with hl.plan_tx(root) as plan:
@@ -330,7 +330,7 @@ class OfflineChecks(unittest.TestCase):
             with self.subTest(mode=mode, exit_code=exit_code), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 with contextlib.redirect_stdout(io.StringIO()):
-                    hl.cmd_init(SimpleNamespace(root=str(root), goal="test"))
+                    hl.cmd_init(SimpleNamespace(root=str(root), goal="test", record="off"))
                 t = task("a")
                 t.update(mode=mode, status="running", submission="submitted", owner="p1", marker_ns=123)
                 with hl.plan_tx(root) as plan:
@@ -352,7 +352,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="test"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="test", record="off"))
             first = task("a", writes=["a.txt"])
             first.update(status="done", runner="codex", alias="a")
             second = task("b")
@@ -380,7 +380,7 @@ class OfflineChecks(unittest.TestCase):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 with contextlib.redirect_stdout(io.StringIO()):
-                    hl.cmd_init(SimpleNamespace(root=str(root), goal="takeover"))
+                    hl.cmd_init(SimpleNamespace(root=str(root), goal="takeover", record="off"))
                 item = task("a")
                 item.update(status=status, runner="codex", alias="a", submission="stopped")
                 with hl.plan_tx(root) as plan:
@@ -408,7 +408,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="test"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="test", record="off"))
             with hl.plan_tx(root) as plan:
                 plan["tasks"] = [task("a", alias="strong-alias")]
                 run_id = plan["run_id"]
@@ -487,7 +487,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="trust"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="trust", record="off"))
             with hl.plan_tx(root) as plan:
                 plan["tasks"] = [task("trust-a")]
             calls = []
@@ -521,7 +521,7 @@ class OfflineChecks(unittest.TestCase):
             with self.subTest(screen=screen), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 with contextlib.redirect_stdout(io.StringIO()):
-                    hl.cmd_init(SimpleNamespace(root=str(root), goal="startup trust"))
+                    hl.cmd_init(SimpleNamespace(root=str(root), goal="startup trust", record="off"))
                 with hl.plan_tx(root) as plan:
                     plan["tasks"] = [task("startup-trust")]
                 calls = []
@@ -554,7 +554,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="not ready"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="not ready", record="off"))
             with hl.plan_tx(root) as plan:
                 plan["tasks"] = [task("not-ready-a")]
             calls = []
@@ -586,7 +586,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="test"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="test", record="off"))
             with hl.plan_tx(root) as plan:
                 plan["tasks"] = [task("a")]
             calls = []
@@ -617,7 +617,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="test"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="test", record="off"))
             with hl.plan_tx(root) as plan:
                 plan["tasks"] = [task("a")]
             calls = []
@@ -646,6 +646,47 @@ class OfflineChecks(unittest.TestCase):
     def test_ai_name_for_pane_label(self):
         self.assertEqual([hl.ai_name(r) for r in ("agy-acc1", "claude-ccc", "codex", "pi")],
                          ["Agy", "Claudeccc", "Codex", "Pi"])
+
+    def test_record_must_be_confirmed_before_dispatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with contextlib.redirect_stdout(io.StringIO()):
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="rec"))
+            with hl.plan_tx(root) as plan:
+                plan["tasks"] = [task("a")]
+            out = io.StringIO()
+            args = SimpleNamespace(root=str(root), dry_run=False, yes=True, timeout=1)
+            with mock.patch.dict(os.environ, {"HERDR_ENV": "1"}), \
+                 mock.patch.object(hl, "quota", return_value={}), \
+                 mock.patch.object(hl, "models", return_value=[model("a")]), \
+                 contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as ctx:
+                hl.cmd_run(args)
+            self.assertEqual(3, ctx.exception.code)
+            self.assertIn("派工记录未确认", out.getvalue())
+
+    def test_record_export_writes_md_and_json_with_ai(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, parent = Path(tmp) / "proj", Path(tmp) / "records"
+            root.mkdir()
+            with contextlib.redirect_stdout(io.StringIO()), \
+                 mock.patch.object(hl, "quota", return_value={}), \
+                 mock.patch.object(hl, "models", return_value=[model("a", runner="agy-acc1")]):
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="写 报告", record="on",
+                                            record_dir=str(parent), leader="Claude"))
+                with hl.plan_tx(root) as plan:
+                    done = task("a", alias="a")
+                    done.update(status="done", runner="agy-acc1", summary="ok")
+                    plan["tasks"] = [done]
+                hl.P(root, "brief", "a.md").write_text("BRIEF-A")
+                out = hl.export_record(root, hl.read_plan(root))
+            self.assertEqual(parent.resolve(), out.parent)
+            self.assertTrue(out.name.startswith("派工记录_写报告_"))
+            md = (out / "派工文档_claude.md").read_text()
+            self.assertIn("BRIEF-A", md)
+            self.assertIn("→ Agy", md)
+            rec = json.loads((out / "执行记录_claude.json").read_text())
+            self.assertEqual(("Agy", "model-a", "done"),
+                             (rec["tasks"][0]["ai"], rec["tasks"][0]["model"], rec["tasks"][0]["status"]))
 
     def test_verify_target_matches_real_model_labels(self):
         cases = [
@@ -686,7 +727,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="review"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="review", record="off"))
             review = task("R-a")
             review["marker_ns"] = 0
             out = hl.report_path(root, review)
@@ -712,7 +753,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="scope"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="scope", record="off"))
             t = task("a", writes=["owned.txt"])
             t["marker_ns"] = 0
             t["before"] = {}
@@ -773,7 +814,7 @@ class OfflineChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
-                hl.cmd_init(SimpleNamespace(root=str(root), goal="stale"))
+                hl.cmd_init(SimpleNamespace(root=str(root), goal="stale", record="off"))
             task_a = task("a")
             task_a.update(status="running", submission="uncertain", owner="p1")
             with hl.plan_tx(root) as plan:

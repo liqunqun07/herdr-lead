@@ -18,6 +18,7 @@ description: 在 herdr 环境里，用户要把长任务或复杂任务交给你
 1. 明确目标、约束、验收、可写范围和是否值得并行。
 2. 用 `hl init` 建项目状态，用 `hl load` 导入任务，用 `hl check` 检查依赖与冲突。
 3. 运行 `hl plan` 生成编排表；给用户的方案必须附这张脚本生成的表，不手写重排。再检查 `hl models list`、`hl models pick` 和额度，为任务生成 brief。
+   同时问用户一次：要不要生成派工记录（派工文档 md + 执行记录 json，写明每个任务由哪个 AI 做）。默认放桌面新文件夹，用户也可指定父目录。按回答执行 `hl record on --leader <你的AI名> [--dir 父目录]` 或 `hl record off`；未确认时 `hl run` 退出码 3。记录由脚本从 plan.json 生成，不要手写。
 4. 查看 `hl run --dry-run` 的命令；按需要取得确认和 runner 授权，再运行。
 5. 查看状态和回报，复核结果；阻塞时确认停写后接管，汇总 digest 并回报来源。
 
@@ -64,6 +65,7 @@ description: 在 herdr 环境里，用户要把长任务或复杂任务交给你
 `hl models test ALIAS` 测试已启用的 cheap 模型。
 `hl models pick --tier cheap --tag code` 选择模型，tag 可省略。
 `hl consent RUNNER` 登记已确认的 runner 授权。
+`hl record on --leader AI [--dir 父目录]` / `hl record off` 决定是否生成派工记录；`hl record export` 立即导出。开启后 `hl run` 结束和 `hl digest` 时自动覆盖同一文件夹里的 `派工文档_<leader>.md` 与 `执行记录_<leader>.json`。
 `hl run --dry-run` 查看计划及命令。
 `hl run --yes` 在满足条件后执行。
 `hl status` 查看任务状态；`--json` 输出 JSON。

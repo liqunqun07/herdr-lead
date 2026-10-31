@@ -39,6 +39,7 @@ hl check                  # 检查依赖环、写入范围是否重叠、单一�
 hl plan                   # 编排表：分几批、每个任务用哪个模型及原因、预计耗时、是否需要你确认
 hl run                    # 派工、等待、核对证据、失败重试或升档
 hl status / hl digest     # A 只读 digest：每个任务 ≤10 行 + 产物路径
+hl record on --leader claude [--dir 父目录]   # 派工记录：默认在桌面新建文件夹，写派工文档 md + 执行记录 json（含每个任务由哪个 AI 做）；hl record off 不要
 ```
 
 编排表示例：
