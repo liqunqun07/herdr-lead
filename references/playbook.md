@@ -154,8 +154,9 @@ leader 恢复时先读 `~/.agents/teamwork/inbox/`，再核对回报文件。
 Herdr 按前台进程名（argv0）识别 agent，必须是 `claude`、`codex`、`agy` 这类标准名。
 如果 `claude` 被包装脚本接管，包装脚本最后 exec 真实程序时，要把 argv0 设为 `claude`（例如 `os.execv(真实路径, ["claude", *args])`）。
 否则进程名是版本号文件名（如 `2.1.310`），`herdr agent list` 识别不到，agent 模式会报 `agent_not_ready`。
-本机 2026-10-31 已按此修复启动包装，实测 `herdr agent start --kind claude` 识别为 claude/idle，可以用 agent 模式。
+Agy 同理：包装脚本用 `exec -a agy "$REAL"`，否则进程名是 `agy.bin`。
+本机 2026-10-31 已按此修复 Claude 与 Agy 的启动包装，实测 `herdr agent start --kind claude` 识别为 claude/idle，可以用 agent 模式。
 启动包装先查额度时（约 14 秒），pane 前台是 python；`agent start` 默认等待 30 秒，足够。
 Codex 的 agent 模式已在 `/private/tmp` 下实际启动并通过测试。
-Agy 账号别名不支持 agent 模式；遇到账号专用别名时不要尝试启动 agent。
+Agy 账号别名（agy-acc1 等）不支持 agent 模式；agent 模式只用标准名 `agy`。新目录首次启动 Agy 会弹信任对话框，hl 标记 blocked，由用户确认。
 这些结论针对本机当前 runner 配置；runner 包装或 Herdr 行为变化后需重新实测。
