@@ -1,4 +1,1 @@
-{
-  "pattern": "^(?!.*(?:分工|指挥|派活|多\\s*(?:AI|agent)|多窗口|并行|接管|接手|额度|quota|orchestrat(?:e|ion))).*(?:计划|方案|规划|排期|派工|长任务|plan mode|make a plan|\\bplan\\b)",
-  "context": "[herdr-dispatch] 若处于计划阶段且任务复杂或较长，按 herdr-dispatch/SKILL.md 生成一次性子任务派工方案；简单任务忽略。"
-}
+{"pattern": "(?i)herdr.{0,40}(分工|派工|编排|leader|接管|多.?agent|协作)|(分工|派工|编排|接管).{0,40}herdr", "context": "herdr 内分工/派工/接管：先读 ~/.agents/skills/herdr-lead/SKILL.md，用 hl.py 执行"}
