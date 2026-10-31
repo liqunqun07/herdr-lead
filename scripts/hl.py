@@ -156,6 +156,12 @@ def overlap(a, b) -> bool:
     return False
 
 
+def ai_name(runner: str) -> str:
+    """全局命名规则「任务·AI」：agy-acc1→Agy，claude-ccc→Claudeccc，codex→Codex。"""
+    head, _, rest = runner.partition("-")
+    return head.capitalize() + ("" if not rest or rest.startswith("acc") else rest)
+
+
 def in_scope(f: str, pats) -> bool:
     for p in pats:
         if p.endswith("/") and f.startswith(p):
@@ -1362,7 +1368,7 @@ def run_wave(a):
                 save_plan(root, plan)
                 continue
             task["pane"] = pane
-            label = task["title"] + "·" + model["model"]
+            label = task["title"].strip() + "·" + ai_name(model["runner"])
             for rename in (["herdr", "pane", "rename", pane, label],
                            ["herdr", "tab", "rename", tab, label]):
                 rc, _, err = sh(rename)

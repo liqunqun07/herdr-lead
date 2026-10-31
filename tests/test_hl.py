@@ -641,6 +641,10 @@ class OfflineChecks(unittest.TestCase):
             saved = hl.read_plan(root)["tasks"][0]
             self.assertEqual(("blocked", "uncertain"), (saved["status"], saved["submission"]))
 
+    def test_ai_name_for_pane_label(self):
+        self.assertEqual([hl.ai_name(r) for r in ("agy-acc1", "claude-ccc", "codex", "pi")],
+                         ["Agy", "Claudeccc", "Codex", "Pi"])
+
     def test_verify_target_matches_real_model_labels(self):
         cases = [
             ("claude-opus-5-5", "claude", "🧠 claude-opus-5-5"),
