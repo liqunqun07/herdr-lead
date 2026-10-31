@@ -1369,11 +1369,8 @@ def run_wave(a):
                 continue
             task["pane"] = pane
             label = task["title"].strip() + "·" + ai_name(model["runner"])
-            for rename in (["herdr", "pane", "rename", pane, label],
-                           ["herdr", "tab", "rename", tab, label]):
-                rc, _, err = sh(rename)
-                if rc:
-                    break
+            # split --current puts the worker in the leader's tab; renaming that tab would relabel the leader.
+            rc, _, err = sh(["herdr", "pane", "rename", pane, label])
             if rc:
                 sh(["herdr", "pane", "close", pane])
                 task.update(status="blocked", reason="命名失败: " + err, submission="uncertain")

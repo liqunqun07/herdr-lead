@@ -95,7 +95,7 @@ leader 恢复时先读 `~/.agents/teamwork/inbox/`，再核对回报文件。
 只用 `herdr pane run` 提交 shell 命令。
 不得使用 `pane send-text`、`agent send` 或 `agent start --split`。
 先分屏，再用 `agent start --pane`，最后提交 prompt。
-pane 和 tab 均命名为「任务·AI」，如 `写gamma文件·Agy`（AI 名取自 runner，不写模型 id）。
+worker pane 命名为「任务·AI」，如 `写gamma文件·Agy`（AI 名取自 runner，不写模型 id）。worker 与 leader 同在一个 tab，只改 pane 名，不改 tab 名。
 提交前核对身份、模型、状态及空输入框。
 额度 critical 或 exhausted 时不派新活。
 屏幕实际额度报错优先于缓存。

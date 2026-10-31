@@ -320,6 +320,8 @@ class OfflineChecks(unittest.TestCase):
             self.assertEqual(["done", "done"], [t["status"] for t in hl.read_plan(root)["tasks"]])
             ops = [c[1:3] for c in calls if c[0] == "herdr"]
             self.assertLess(ops.index(["pane", "run"]), ops.index(["agent", "prompt"]))
+            self.assertIn(["pane", "rename"], ops)
+            self.assertNotIn(["tab", "rename"], ops)  # worker shares the leader's tab
 
     def test_wait_failure_and_timeout_are_not_resent(self):
         for mode, exit_code, expected in (("oneshot", "1", "failed"),
