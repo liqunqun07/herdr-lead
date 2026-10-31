@@ -151,9 +151,11 @@ leader 恢复时先读 `~/.agents/teamwork/inbox/`，再核对回报文件。
 
 ## 本机 runner 实测结论
 
-本机 Claude 命令是 zsh 函数包装；启动前会先打印额度面板。
-Claude 在 agent 模式下，Herdr 会丢失前台进程并返回 `agent_not_ready`。
-因此本机 Claude 只使用 oneshot，不用 agent 模式。
+Herdr 按前台进程名（argv0）识别 agent，必须是 `claude`、`codex`、`agy` 这类标准名。
+如果 `claude` 被包装脚本接管，包装脚本最后 exec 真实程序时，要把 argv0 设为 `claude`（例如 `os.execv(真实路径, ["claude", *args])`）。
+否则进程名是版本号文件名（如 `2.1.310`），`herdr agent list` 识别不到，agent 模式会报 `agent_not_ready`。
+本机 2026-10-31 已按此修复启动包装，实测 `herdr agent start --kind claude` 识别为 claude/idle，可以用 agent 模式。
+启动包装先查额度时（约 14 秒），pane 前台是 python；`agent start` 默认等待 30 秒，足够。
 Codex 的 agent 模式已在 `/private/tmp` 下实际启动并通过测试。
 Agy 账号别名不支持 agent 模式；遇到账号专用别名时不要尝试启动 agent。
 这些结论针对本机当前 runner 配置；runner 包装或 Herdr 行为变化后需重新实测。
